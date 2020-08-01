@@ -24,7 +24,7 @@ class ArticleViewModel(private val articleId: String) :
                 title = article.title,
                 author = article.author,
                 category = article.category,
-                categorylcon = article.categoryIcon,
+                categoryIcon = article.categoryIcon,
                 date = article.date.format()
             )
         }
@@ -180,7 +180,7 @@ data class ArticleState(
     val shareLink: String? = null, //ссылка Share
     val title: String? = null, //заголовок статьи
     val category: String? = null, //категория
-    val categorylcon: Any? = null, //иконка категории
+    val categoryIcon: Any? = null, //иконка категории
     val date: String? = null, //дата публикации
     val author: Any? = null,//автор статьи
     val poster: String? = null, //обложка статьи
