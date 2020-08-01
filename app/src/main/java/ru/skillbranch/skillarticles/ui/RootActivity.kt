@@ -80,7 +80,7 @@ class RootActivity : AppCompatActivity() {
             if (data.isLoadingContent) "loading" else data.content.first() as String // bind toolbar
         toolbar.title = data.title ?: "Skill Articles"
         toolbar.subtitle = data.category ?: "loading..."
-        if (data.categorylcon != null) toolbar.logo = getDrawable(data.categorylcon as Int)
+        if (data.categoryIcon != null) toolbar.logo = getDrawable(data.categoryIcon as Int)
 
 
     }
