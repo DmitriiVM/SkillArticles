@@ -1,4 +1,5 @@
 package ru.skillbranch.skillarticles
 
-class TestTest {
+class Test {
+    // lala
 }
