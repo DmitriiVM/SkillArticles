@@ -18,6 +18,7 @@ import ru.skillbranch.skillarticles.viewmodels.Notify
 import ru.skillbranch.skillarticles.viewmodels.ViewModelFactory
 
 class RootActivity : AppCompatActivity() {
+    // lala
 
     private lateinit var viewModel: ArticleViewModel
 
