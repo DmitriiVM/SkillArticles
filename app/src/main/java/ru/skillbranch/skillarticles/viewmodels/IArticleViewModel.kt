@@ -21,7 +21,6 @@ interface IArticleViewModel {
      */
     fun getArticlePersonalInfo(): LiveData<ArticlePersonalInfo?>
 
-
     /**
      * Получение настроек приложения
      */

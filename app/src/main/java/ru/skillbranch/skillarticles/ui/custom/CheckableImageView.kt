@@ -11,6 +11,7 @@ class CheckableImageView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : androidx.appcompat.widget.AppCompatImageView(context, attrs, defStyleAttr), Checkable, View.OnClickListener{
+
     private var checked = false
 
     companion object {
