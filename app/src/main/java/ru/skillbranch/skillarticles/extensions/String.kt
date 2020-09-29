@@ -9,12 +9,12 @@ fun String?.indexesOf(substr: String, ignoreCase: Boolean = true): List<Int> {
         substr
     }
     val regex = "$str"
-    val result = if (ignoreCase) {
+    val resul = if (ignoreCase) {
         regex.toRegex().findAll(this.toLowerCase())
     } else {
         regex.toRegex().findAll(this)
     }
     val out: MutableList<Int> = mutableListOf()
-    result.forEach { out.add(it.range.start) }
+    resul.forEach { out.add(it.range.start) }
     return out
 }

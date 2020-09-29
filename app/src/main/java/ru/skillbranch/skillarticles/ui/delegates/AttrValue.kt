@@ -2,7 +2,6 @@ package ru.skillbranch.skillarticles.ui.delegates
 
 import android.content.Context
 import android.content.res.Resources
-import android.util.Log
 import android.util.TypedValue
 import androidx.annotation.AttrRes
 import kotlin.properties.ReadOnlyProperty
@@ -16,7 +15,6 @@ class AttrValue(@AttrRes private val res: Int) : ReadOnlyProperty<Context, Int> 
             if (thisRef.theme.resolveAttribute(res, tv, true)) value = tv.data
             else throw Resources.NotFoundException("Resource with id $res not found")
         }
-        Log.d("mmm", "AttrValue :  getValue --$res  $value")
         return value!!
     }
 }

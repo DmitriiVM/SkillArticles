@@ -29,7 +29,6 @@ class RenderProp<T>(
 }
 
 class ObserveProp<T : Any>(private var value: T, private val onChange: ((T) -> Unit)? = null) {
-
     operator fun provideDelegate(
         thisRef: Binding,
         prop: KProperty<*>

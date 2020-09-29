@@ -21,7 +21,6 @@ class Bottombar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), CoordinatorLayout.AttachedBehavior {
-
     var isSearchMode = false
 
     override fun getBehavior(): CoordinatorLayout.Behavior<Bottombar> {
@@ -92,16 +91,16 @@ class Bottombar @JvmOverloads constructor(
             tv_search_result.text = "Not found"
             btn_result_up.isEnabled = false
             btn_result_down.isEnabled = false
-        } else {
+        }else{
             tv_search_result.text = "${position.inc()} of $searchCount"
             btn_result_up.isEnabled = true
             btn_result_down.isEnabled = true
         }
 
         //lock button presses in min/max positions
-        when (position) {
+        when(position){
             0 -> btn_result_up.isEnabled = false
-            searchCount - 1 -> btn_result_down.isEnabled = false
+            searchCount -1 -> btn_result_down.isEnabled = false
         }
     }
 
