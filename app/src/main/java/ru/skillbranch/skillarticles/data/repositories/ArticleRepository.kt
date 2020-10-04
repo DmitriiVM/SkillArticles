@@ -9,6 +9,7 @@ object ArticleRepository {
     private val network = NetworkDataHolder
 
     fun loadArticleContent(articleId: String): LiveData<List<MarkdownElement>?> {
+        //5s delay from network
         return Transformations.map(network.loadArticleContent(articleId)) {
             return@map if (it == null) null
             else MarkdownParser.parse(it)

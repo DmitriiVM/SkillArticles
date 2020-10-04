@@ -5,46 +5,46 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 class PrefDelegate<T>(private val defaultValue: T) {
-    private var value: T? = null
+    private var storedValue: T? = null
 
     operator fun provideDelegate(
         thisRef: PrefManager,
-        prop: KProperty<*>
+        property: KProperty<*>
     ): ReadWriteProperty<PrefManager, T?> {
-        val k = prop.name
-        return object : ReadWriteProperty<PrefManager, T?> {
+        val key = property.name
+        return object: ReadWriteProperty<PrefManager, T?> {
             override fun getValue(thisRef: PrefManager, property: KProperty<*>): T? {
-                if (value == null) {
+                if (storedValue == null) {
+                    val prefs = thisRef.preferences
                     @Suppress("UNCHECKED_CAST")
-                    value = when (defaultValue) {
-                        is Int -> thisRef.preferences.getInt(k, defaultValue as Int) as T
-                        is Long -> thisRef.preferences.getLong(k, defaultValue as Long) as T
-                        is Float -> thisRef.preferences.getFloat(k, defaultValue as Float) as T
-                        is String -> thisRef.preferences.getString(k, defaultValue as String) as T
-                        is Boolean -> thisRef.preferences.getBoolean(
-                            k,
-                            defaultValue as Boolean
-                        ) as T
-                        else -> throw  IllegalArgumentException("Bad type")
+                    storedValue = when (defaultValue) {
+                        is Boolean -> prefs.getBoolean(property.name, defaultValue as Boolean) as T
+                        is String -> prefs.getString(property.name, defaultValue as String) as T
+                        is Int -> prefs.getInt(property.name, defaultValue as Int) as T
+                        is Long -> prefs.getLong(property.name, defaultValue as Long) as T
+                        is Float -> prefs.getFloat(property.name, defaultValue as Float) as T
+                        else -> error("Only primitive types allowed to be read from shared preferences")
                     }
                 }
-                return value
+                return storedValue
             }
 
             override fun setValue(thisRef: PrefManager, property: KProperty<*>, value: T?) {
-                with(thisRef.preferences.edit()) {
+                with (thisRef.preferences.edit()) {
                     when (value) {
-                        is Int -> putInt(k, value)
-                        is Long -> putLong(k, value)
-                        is Float -> putFloat(k, value)
-                        is String -> putString(k, value)
-                        is Boolean -> putBoolean(k, value)
-                        else -> throw  IllegalArgumentException("Bad type")
+                        is Boolean -> putBoolean(property.name, value as Boolean)
+                        is String -> putString(property.name, value as String)
+                        is Int -> putInt(property.name, value as Int)
+                        is Long -> putLong(property.name, value as Long)
+                        is Float -> putFloat(property.name, value as Float)
+                        else -> error("Only primitive types allowed to be save in shared preferences")
                     }
                     apply()
                 }
-                this@PrefDelegate.value = value
+                storedValue = value
             }
         }
     }
+
 }
+

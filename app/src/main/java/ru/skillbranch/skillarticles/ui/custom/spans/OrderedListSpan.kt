@@ -18,6 +18,7 @@ class OrderedListSpan(
 ) : LeadingMarginSpan {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 
+
     override fun getLeadingMargin(first: Boolean): Int {
         return (order.length.inc() * gapWidth).toInt()
     }
@@ -27,14 +28,11 @@ class OrderedListSpan(
         lineTop: Int, lineBaseline: Int, lineBottom: Int, text: CharSequence?, lineStart: Int,
         lineEnd: Int, isFirstLine: Boolean, layout: Layout?
     ) {
-        if (isFirstLine) {
+        // only for the first line draw order string
+        if(isFirstLine) {
             paint.withCustomColor {
-                canvas.drawText(
-                    order,
-                    currentMarginLocation + gapWidth,
-                    lineBaseline.toFloat(),
-                    paint
-                )
+                canvas.drawText(order, gapWidth + currentMarginLocation,
+                    lineBaseline.toFloat(), paint)
             }
         }
     }

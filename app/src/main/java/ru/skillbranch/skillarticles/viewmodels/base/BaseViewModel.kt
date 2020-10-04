@@ -5,7 +5,8 @@ import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.*
 
-abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
+
+abstract class BaseViewModel<T: IViewModelState>(initState: T) : ViewModel() {
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val notifications = MutableLiveData<Event<Notify>>()
 
@@ -57,7 +58,7 @@ abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
 
     /***
      * более компактная форма записи observe() метода LiveData вызывает лямбда выражение обработчик
-     * только в том случае если уведомление не было уже обработанно ранее,
+     * только в том случае если уведомление не было уже обработано ранее,
      * реализует данное поведение с помощью EventObserver
      */
     fun observeNotifications(owner: LifecycleOwner, onNotify: (notification: Notify) -> Unit) {
@@ -79,16 +80,19 @@ abstract class BaseViewModel<T : IViewModelState>(initState: T) : ViewModel() {
         }
     }
 
-    fun saveState(outState: Bundle){
+    fun saveState(outState: Bundle) {
         currentState.save(outState)
     }
 
+
     @Suppress("UNCHECKED_CAST")
-    fun restoreState(savedState:Bundle){
+    fun restoreState(savedState: Bundle)  {
         state.value = currentState.restore(savedState) as T
     }
 
+
 }
+
 
 class Event<out E>(private val content: E) {
     var hasBeenHandled = false
@@ -122,19 +126,18 @@ class EventObserver<E>(private val onEventUnhandledContent: (E) -> Unit) : Obser
     }
 }
 
-sealed class Notify() {
-    abstract val msg: String
-    data class TextMessage(override val msg: String) : Notify()
+sealed class Notify(val message: String) {
+    data class TextMessage(val msg: String) : Notify(msg)
 
     data class ActionMessage(
-        override val msg: String,
+        val msg: String,
         val actionLabel: String,
         val actionHandler: (() -> Unit)
-    ) : Notify()
+    ) : Notify(msg)
 
     data class ErrorMessage(
-        override val msg: String,
+        val msg: String,
         val errLabel: String?,
         val errHandler: (() -> Unit)?
-    ) : Notify()
+    ) : Notify(msg)
 }
