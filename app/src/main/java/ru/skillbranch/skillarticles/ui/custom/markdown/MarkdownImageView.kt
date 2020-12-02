@@ -6,8 +6,8 @@ import android.graphics.*
 import android.os.Parcel
 import android.os.Parcelable
 import android.text.Spannable
-import android.util.SparseArray
 import android.view.*
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.ColorInt
@@ -30,13 +30,13 @@ import java.security.MessageDigest
 import kotlin.math.hypot
 
 @SuppressLint("ViewConstructor")
-open class MarkdownImageView private constructor(
-    context: Context,
-    fontSize: Float
-): ViewGroup(context, null, 0), IMarkdownView {
+class MarkdownImageView private constructor(
+        context: Context,
+        fontSize: Float
+) : ViewGroup(context, null, 0), IMarkdownView {
 
     override var fontSize: Float = fontSize
-        set(value){
+        set(value) {
             tv_title.textSize = value * 0.75f
             tv_alt?.textSize = value
             field = value
@@ -45,14 +45,13 @@ open class MarkdownImageView private constructor(
     override val spannableContent: Spannable
         get() = tv_title.text as Spannable
 
-    // views
-    lateinit var imageUrl: String
-    lateinit var imageTitle: CharSequence
+    //views
+    private lateinit var imageUrl: String
+    private lateinit var imageTitle: CharSequence
 
-
-    val iv_image: ImageView
-    val tv_title: MarkdownTextView
-    var tv_alt: TextView? = null
+    private val iv_image: ImageView
+    private val tv_title: MarkdownTextView
+    private var tv_alt: TextView? = null
 
     @Px
     private val titleTopMargin: Int = context.dpToIntPx(8)
@@ -67,31 +66,28 @@ open class MarkdownImageView private constructor(
     @ColorInt
     private val colorOnBackground: Int = context.attrValue(R.attr.colorOnBackground)
     @ColorInt
-    private val lineColor: Int = context.getColor(R.color.color_divider)
+    private var lineColor: Int = context.getColor(R.color.color_divider)
 
-    // for draw object allocation
+    //for draw object allocation
     private var linePositionY: Float = 0f
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = lineColor
         strokeWidth = 0f
     }
 
-    init {
-        //setBackgroundColor(Color.RED)
+    private var isOpen = false
+    private var aspectRatio = 0f
 
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+    init {
+        layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
         iv_image = ImageView(context).apply {
-            // TODO settings image view
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setImageResource(R.drawable.ic_launcher_background)
-            outlineProvider = object: ViewOutlineProvider() {
+            outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
                     outline.setRoundRect(
-                        Rect(0,0, view.measuredWidth, view.measuredHeight),
-                        cornerRadius
+                            Rect(0, 0, view.measuredWidth, view.measuredHeight),
+                            cornerRadius
                     )
                 }
-
             }
             clipToOutline = true
         }
@@ -103,27 +99,25 @@ open class MarkdownImageView private constructor(
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
             setPaddingOptionally(left = titlePadding, right = titlePadding)
         }
+
         addView(tv_title)
     }
 
     constructor(
-        context: Context,
-        fontSize: Float,
-        url: String,
-        title: CharSequence,
-        alt: String?
-    ): this(context, fontSize) {
+            context: Context,
+            fontSize: Float,
+            url: String,
+            title: CharSequence,
+            alt: String?
+    ) : this(context, fontSize) {
         imageUrl = url
         imageTitle = title
+
         tv_title.setText(title, TextView.BufferType.SPANNABLE)
-
-        Glide
-            .with(context)
-            .load(url)
-            .transform(AspectRationResizeTransform())
-            .into(iv_image)
-
-
+        Glide.with(context)
+                .load(url)
+                .transform(AspectRatioResizeTransform())
+                .into(iv_image)
 
         if (alt != null) {
             tv_alt = TextView(context).apply {
@@ -134,28 +128,112 @@ open class MarkdownImageView private constructor(
                 textSize = fontSize
                 setPadding(titleTopMargin)
                 isVisible = false
+            }
+            addView(tv_alt)
 
+            iv_image.setOnClickListener {
+                if (tv_alt?.isVisible == true) animateHideAlt()
+                else animateShowAlt()
+                isOpen = !isOpen
             }
         }
+    }
 
-        addView(tv_alt)
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        var usedHeight = 0
+        val width = View.getDefaultSize(suggestedMinimumWidth, widthMeasureSpec)
 
-        iv_image.setOnClickListener {
-            if (tv_alt?.isVisible == true) animateHideAlt()
-            else animateShowAlt()
+        //create measureSpec for children EXACTLY
+        //all children width == parent width (constraint parent width)
+        val ms = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
+
+        if (aspectRatio != 0f) {
+            // Restore width/height by aspect ration
+            val hms = MeasureSpec.makeMeasureSpec((width / aspectRatio).toInt(), MeasureSpec.EXACTLY)
+            iv_image.measure(ms, hms)
+        } else {
+            iv_image.measure(ms, heightMeasureSpec)
         }
 
+        iv_image.measure(ms, heightMeasureSpec)
+        tv_title.measure(ms, heightMeasureSpec)
+        tv_alt?.measure(ms, heightMeasureSpec)
+
+        usedHeight += iv_image.measuredHeight
+        usedHeight += titleTopMargin
+        linePositionY = usedHeight + tv_title.measuredHeight / 2f
+        usedHeight += tv_title.measuredHeight
+
+        setMeasuredDimension(width, usedHeight)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        Glide
+                .with(context)
+                .load(imageUrl)
+                .transform(AspectRatioResizeTransform())
+                .into(iv_image)
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        var usedHeight = 0
+        val bodyWidth = r - l - paddingLeft - paddingRight
+        val left = paddingLeft
+        val right = paddingLeft + bodyWidth
+
+        iv_image.layout(
+                left,
+                usedHeight,
+                right,
+                usedHeight + iv_image.measuredHeight
+        )
+
+        usedHeight += iv_image.measuredHeight + titleTopMargin
+
+        tv_title.layout(
+                left,
+                usedHeight,
+                right,
+                usedHeight + tv_title.measuredHeight
+        )
+
+        tv_alt?.layout(
+                left,
+                iv_image.measuredHeight - (tv_alt?.measuredHeight ?: 0),
+                right,
+                iv_image.measuredHeight
+        )
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        canvas.drawLine(
+                0f,
+                linePositionY,
+                titlePadding.toFloat(),
+                linePositionY,
+                linePaint
+        )
+
+        canvas.drawLine(
+                canvas.width - titlePadding.toFloat(),
+                linePositionY,
+                canvas.width.toFloat(),
+                linePositionY,
+                linePaint
+        )
     }
 
     private fun animateShowAlt() {
         tv_alt?.isVisible = true
         val endRadius = hypot(tv_alt?.width?.toFloat() ?: 0f, tv_alt?.height?.toFloat() ?: 0f)
         val va = ViewAnimationUtils.createCircularReveal(
-            tv_alt,
-            tv_alt?.width ?: 0,
-            tv_alt?.height ?: 0,
-            0f,
-            endRadius
+                tv_alt,
+                tv_alt?.width ?: 0,
+                tv_alt?.height ?: 0,
+                0f,
+                endRadius
         )
         va.start()
     }
@@ -163,121 +241,45 @@ open class MarkdownImageView private constructor(
     private fun animateHideAlt() {
         val endRadius = hypot(tv_alt?.width?.toFloat() ?: 0f, tv_alt?.height?.toFloat() ?: 0f)
         val va = ViewAnimationUtils.createCircularReveal(
-            tv_alt,
-            tv_alt?.width ?: 0,
-            tv_alt?.height ?: 0,
-            endRadius,
-            0f
+                tv_alt,
+                tv_alt?.width ?: 0,
+                tv_alt?.height ?: 0,
+                endRadius,
+                0f
         )
         va.doOnEnd { tv_alt?.isVisible = false }
         va.start()
     }
 
-    @VisibleForTesting
-    public override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        var usedHeight = 0
-        val width = View.getDefaultSize(suggestedMinimumWidth, widthMeasureSpec)
-
-        // create measureSpec for children EXACTLY despite default WRAP_CONTENT
-        // all children width = parent width (constraint parent width)
-        val ms = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
-
-        iv_image.measure(ms, heightMeasureSpec)
-        tv_title.measure(ms, heightMeasureSpec)
-
-        if (tv_alt != null) tv_alt?.measure(ms, heightMeasureSpec)
-
-        usedHeight += iv_image.measuredHeight
-        usedHeight += titleTopMargin
-        linePositionY = usedHeight + tv_title.measuredHeight/2f
-        usedHeight += tv_title.measuredHeight
-
-        setMeasuredDimension(width, usedHeight)
-    }
-
-    @VisibleForTesting
-    public override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        var usedHeight = 0
-        val bodyWidth = r - l - paddingLeft - paddingRight
-        val left  = paddingLeft
-        val rigth = paddingLeft + bodyWidth
-
-        // iv_image
-        iv_image.layout(
-            left,
-            usedHeight,
-            right,
-            usedHeight + iv_image.measuredHeight
-        )
-
-        usedHeight += iv_image.measuredHeight + titleTopMargin
-
-        // tv_title
-        tv_title.layout (
-            left,
-            usedHeight,
-            right,
-         usedHeight + tv_title.measuredHeight
-        )
-
-        // tv_alt
-        tv_alt?.layout (
-            left,
-            iv_image.measuredHeight - (tv_alt?.measuredHeight ?: 0),
-            right,
-            iv_image.measuredHeight
-        )
-    }
-
-    @VisibleForTesting
-    public override fun dispatchDraw(canvas: Canvas) {
-        super.dispatchDraw(canvas)
-
-        canvas.drawLine(
-            0f,
-            linePositionY,
-            titlePadding.toFloat(),
-            linePositionY,
-            linePaint
-        )
-
-        canvas.drawLine(
-            canvas.width - titlePadding.toFloat(),
-            linePositionY,
-            canvas.width.toFloat(),
-            linePositionY,
-            linePaint
-        )
-    }
-
-    // Saving state
     override fun onSaveInstanceState(): Parcelable? {
         val savedState = SavedState(super.onSaveInstanceState())
-        savedState.ssIsAltVisible = tv_alt?.isVisible ?: false
+        savedState.ssIsOpen = isOpen
+        savedState.ssAspectRatio = (iv_image.width.toFloat() / iv_image.height)
         return savedState
     }
 
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        if (state is SavedState) {
-            tv_alt?.isVisible = state.ssIsAltVisible
-        }
+    override fun onRestoreInstanceState(state: Parcelable) {
         super.onRestoreInstanceState(state)
+        if (state is SavedState) {
+            isOpen = state.ssIsOpen
+            aspectRatio = state.ssAspectRatio
+            tv_alt?.isVisible = isOpen
+        }
     }
 
     private class SavedState : BaseSavedState, Parcelable {
-
-        var ssIsAltVisible: Boolean = false
-
+        var ssIsOpen: Boolean = false
+        var ssAspectRatio: Float = 0f
 
         constructor(superState: Parcelable?) : super(superState)
 
         constructor(src: Parcel) : super(src) {
-            ssIsAltVisible = src.readInt() == 1
+            ssIsOpen = src.readInt() == 1
         }
 
-        override fun writeToParcel(dst: Parcel, flags: Int) {
-            super.writeToParcel(dst, flags)
-            dst.writeInt(if (ssIsAltVisible) 1 else 0)
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeInt(if (ssIsOpen) 1 else 0)
         }
 
         override fun describeContents() = 0
@@ -287,48 +289,32 @@ open class MarkdownImageView private constructor(
             override fun newArray(size: Int): Array<SavedState?> = arrayOfNulls(size)
         }
     }
-
-
-    override fun dispatchSaveInstanceState(container: SparseArray<Parcelable>) {
-        dispatchFreezeSelfOnly(container)
-    }
-
-    override fun dispatchRestoreInstanceState(container: SparseArray<Parcelable>) {
-        dispatchThawSelfOnly(container)
-    }
-
 }
 
-class AspectRationResizeTransform: BitmapTransformation() {
-    private val ID  = "ru.skillbranch.skillarticles.glide.AspectRatioResizeTransform"
-    private val ID_BYTES = ID.toByteArray(Charset.forName("UTF-8"))
-
+class AspectRatioResizeTransform : BitmapTransformation() {
+    private val id = "ru.skillbranch.skillarticles.glide.AspectRatioResizeTransform" //any unique string
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {
-        messageDigest.update(ID_BYTES)
+        messageDigest.update(id.toByteArray(Charset.forName("UTF-8")))
     }
 
     override fun transform(
-        pool: BitmapPool,
-        toTransform: Bitmap,
-        outWidth: Int,
-        outHeight: Int
+            pool: BitmapPool,
+            toTransform: Bitmap,
+            outWidth: Int,
+            outHeight: Int
     ): Bitmap {
-
         val originWidth = toTransform.width
         val originHeight = toTransform.height
-        val aspectRatio = originWidth.toFloat() / originHeight.toFloat()
+        val aspectRatio = originWidth.toFloat() / originHeight
         return Bitmap.createScaledBitmap(
-            toTransform,
-            outWidth,
-            (outWidth / aspectRatio).toInt(),
-            true
+                toTransform,
+                outWidth,
+                (outWidth / aspectRatio).toInt(),
+                true
         )
-
     }
 
-    override fun equals(other: Any?): Boolean = other is AspectRationResizeTransform
+    override fun equals(other: Any?): Boolean = other is AspectRatioResizeTransform
 
-    override fun hashCode(): Int = ID.hashCode()
-
-
+    override fun hashCode(): Int = id.hashCode()
 }

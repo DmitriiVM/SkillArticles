@@ -10,47 +10,44 @@ import androidx.annotation.Px
 import androidx.annotation.VisibleForTesting
 
 class InlineCodeSpan(
-    @ColorInt
-    private val textColor: Int,
-    @ColorInt
-    private val bgColor: Int,
-    @Px
-    private val cornerRadius: Float,
-    @Px
-    private val padding: Float
+        @ColorInt private val textColor: Int,
+        @ColorInt private val bgColor: Int,
+        @Px private val cornerRadius: Float,
+        @Px private val padding: Float
 ) : ReplacementSpan() {
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    var rect: RectF = RectF()
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    var measureWidth: Int = 0
+    private var rect: RectF = RectF()
+    private var measureWidth: Int = 0
+    lateinit var bounds: IntRange
 
     override fun getSize(
-        paint: Paint,
-        text: CharSequence,
-        start: Int,
-        end: Int,
-        fm: Paint.FontMetricsInt?
+            paint: Paint,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            fm: Paint.FontMetricsInt?
     ): Int {
+        bounds = start..end
         paint.forText {
-            val measureText = paint.measureText(text.toString(), start, end)
+            val measureText = paint.measureText(text.toString(), start, end) // ширина текста
             measureWidth = (measureText + 2 * padding).toInt()
         }
         return measureWidth
     }
 
     override fun draw(
-        canvas: Canvas,
-        text: CharSequence,
-        start: Int,
-        end: Int,
-        x: Float,
-        top: Int,
-        y: Int,
-        bottom: Int,
-        paint: Paint
+            canvas: Canvas,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            x: Float,
+            top: Int,
+            y: Int,
+            bottom: Int,
+            paint: Paint
     ) {
+
         paint.forBackground {
-            rect.set(x, top.toFloat(),x + measureWidth, y + paint.descent())
+            rect.set(x, top.toFloat(), x + measureWidth, y + paint.descent())
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
         }
 
@@ -72,7 +69,7 @@ class InlineCodeSpan(
         block()
 
         color = oldColor
-        typeface= oldFont
+        typeface = oldFont
         textSize = oldSize
     }
 
