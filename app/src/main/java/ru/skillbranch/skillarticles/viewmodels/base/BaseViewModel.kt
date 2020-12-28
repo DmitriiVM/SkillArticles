@@ -11,7 +11,6 @@ abstract class BaseViewModel<T : IViewModelState>(
         private val handleState: SavedStateHandle,
         initState: T
 ) : ViewModel() {
-
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     val notifications = MutableLiveData<Event<Notify>>()
 
@@ -74,12 +73,14 @@ abstract class BaseViewModel<T : IViewModelState>(
      * реализует данное поведение с помощью EventObserver
      */
     fun observeNotifications(owner: LifecycleOwner, onNotify: (notification: Notify) -> Unit) {
-        notifications.observe(owner, EventObserver { onNotify(it) })
+        notifications.observe(owner,
+                EventObserver { onNotify(it) })
     }
 
 
     fun observeNavigation(owner: LifecycleOwner, onNavigate: (command: NavigationCommand) -> Unit) {
-        navigation.observe(owner, EventObserver { onNavigate(it) })
+        navigation.observe(owner,
+                EventObserver { onNavigate(it) })
     }
 
     /***
@@ -124,10 +125,15 @@ class Event<out E>(private val content: E) {
     fun peekContent(): E = content
 }
 
-
+/***
+ * в качестве аргумента конструктора принимает лямбда выражение обработчик в аргумент которой передается
+ * необработанное ранее событие получаемое в реализации метода Observer`a onChanged
+ */
 class EventObserver<E>(private val onEventUnhandledContent: (E) -> Unit) : Observer<Event<E>> {
 
     override fun onChanged(event: Event<E>?) {
+        //если есть необработанное событие (контент) передай в качестве аргумента в лямбду
+        // onEventUnhandledContent
         event?.getContentIfNotHandled()?.let {
             onEventUnhandledContent(it)
         }
